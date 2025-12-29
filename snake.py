@@ -32,7 +32,15 @@ class Snake:
 					valid = False
 					break # try again this pos can't be valid
 
+	def test_rand_move(self):
+		self.direction = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
+		self.move(green_apple=[], red_apple=[])
+
 	def move(self, green_apple, red_apple):
+		"""This function apply the movement of the snake and return values
+		depending of what happende : 1 : alive, 2 : green apple has been eaten, 
+		3 : red apple has been eaten, 4 dead because of wall, 5 dead because
+		len reached 0, 6 : hit itself"""
 		current_head = self.body[-1]
 		head_x, head_y = current_head
 		
@@ -44,19 +52,20 @@ class Snake:
 		if 0 <= new_head_x < self.board_width and 0 <= new_head_y < self.board_height:
 			#check collision with body
 			if (new_head_x, new_head_y) in self.body[:-1]:
-				return False
+				return 6
 			self.body.append((new_head_x, new_head_y))
 			if (new_head_x, new_head_y) in green_apple:
 				green_apple.remove((new_head_x, new_head_y))
-				return True
+				return 2
 			else:
 				self.body.pop(0)
 			if (new_head_x,new_head_y) in red_apple:
 				red_apple.remove((new_head_x, new_head_y))
 				if len(self.body) > 0:
 					self.body.pop(0) 
-				if len(self.body) == 0:
-					return False
-			return True
+					if len(self.body) == 0:
+						return 5
+					return 3
+			return 1
 		else:
-			return False
+			return 4
