@@ -1,7 +1,7 @@
 import pygame
 import random
-import sys 
-
+import sys
+from snake import Snake
 
 CELL_SIZE = 50
 GRID_WIDTH = 10
@@ -11,6 +11,8 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+
 
 class Board:
 	def __init__(self, width=GRID_WIDTH, height=GRID_HEIGHT):
@@ -20,6 +22,7 @@ class Board:
 		self.pixel_h = self.height * CELL_SIZE
 		self.red_pos = []
 		self.green_pos = []
+		self.snake = Snake(width, height)
 
 	def random_pos(self):
 		x = random.randint(0, self.width - 1)
@@ -44,34 +47,39 @@ class Board:
 			centre_y = (green_apple_y * CELL_SIZE) + (CELL_SIZE // 2)
 			pygame.draw.circle(window, GREEN, (centre_x, centre_y), CELL_SIZE // 3)
 
+	def draw_snake(self, window):
+		for pos in self.snake.body:
+			x, y = pos
+			rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+			pygame.draw.rect(window, BLUE, rect)
+	
 	def init_board(self):
-		nb_cell = self.width * self.height
 		pygame.init()
 		window = pygame.display.set_mode((self.pixel_h, self.pixel_w))
-		running = True
 		self.calculate_pos()
-		while running:
-			for event in pygame.event.get():
-				if event.type == pygame.QUIT:
-					running = False
-			window.fill(BACKGROUND) 
-			for x in range(self.width):
-				for y in range(self.height):
-					rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-					pygame.draw.rect(window, WHITE, rect, 1)
-			self.place_apple(window)
-			self.calculate_pos()
-			pygame.display.flip()
-
-		pygame.quit()
-		sys.exit()
-
-
+		return window
 
 
 def main():
 	board = Board()
-	board.init_board()
+	window = board.init_board()
+	running = True
+	while running:
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				running = False
+			window.fill(BACKGROUND) 
+			for x in range(board.width):
+				for y in range(board.height):
+					rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+					pygame.draw.rect(window, WHITE, rect, 1)
+			board.place_apple(window)
+			board.draw_snake(window)
+			board.calculate_pos()
+			pygame.display.flip()
+
+	pygame.quit()
+	sys.exit()
 
 if __name__ == "__main__":
 	main()
