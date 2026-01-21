@@ -1,8 +1,5 @@
 import random
 
-GRID_WIDTH = 10
-GRID_HEIGHT = 10
-
 class Snake:
 	def __init__(self, board_width, board_height):
 		self.board_width = board_width

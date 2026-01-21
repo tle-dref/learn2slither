@@ -2,16 +2,7 @@ import pygame
 import random
 import sys
 from snake import Snake
-
-CELL_SIZE = 50
-GRID_WIDTH = 10
-GRID_HEIGHT = 10
-BACKGROUND = (54, 1, 63)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
+from config import *
 
 
 class Board:
@@ -69,43 +60,49 @@ class Board:
 		self.state = "\n".join(lines)
 
 	def get_agent_state(self):
+		"""calulate the state from the head perspecive but stop at any 'obstacle'"""
 		head_x, head_y = self.snake.body[-1]
-		def is_unsafe(x, y):
-			if not (0 <= x < self.width and 0 <= y < self.height):
-				return 1 
-			if (x, y) in self.snake.body[:-1]:
-				return 1 
-			return 0
-		up = is_unsafe(head_x, head_y - 1)
-		down = is_unsafe(head_x, head_y + 1)
-		left = is_unsafe(head_x - 1, head_y)
-		right = is_unsafe(head_x + 1, head_y)
+		def look(dx, dy):
+			wall, body, green_apple, red_apple = 0, 0, 0, 0
+			curr_x, curr_y = head_x + dx, head_y + dy
+			while 0 <= curr_x < self.width and 0 <= curr_y < self.height:
+				if (curr_x, curr_y) in self.snake.body:
+					body = 1
+					break 
+				if (curr_x, curr_y) in self.green_pos:
+					green_apple = 1
+					break 
+				if (curr_x, curr_y) in self.red_pos:
+					red_apple = 1
+					break 
+				curr_x += dx
+				curr_y += dy
+			else:
+				wall = 1
+			return wall, body, green_apple, red_apple
 
-		green_apple_up = 0
-		green_apple_down = 0
-		green_apple_left = 0
-		green_apple_right = 0
-		for (ax, ay) in self.green_pos:
-			if ax == head_x: 
-				if ay < head_y: green_apple_up = 1
-				if ay > head_y: green_apple_down = 1
-			if ay == head_y:
-				if ax < head_x: green_apple_left = 1
-				if ax > head_x: green_apple_right = 1
-		red_apple_up = 0
-		red_apple_down = 0
-		red_apple_left = 0
-		red_apple_right = 0
-		for (ax, ay) in self.red_pos:
-			if ax == head_x: 
-				if ay < head_y: red_apple_up = 1
-				if ay > head_y: red_apple_down = 1
-			if ay == head_y:
-				if ax < head_x: red_apple_left = 1
-				if ax > head_x: red_apple_right = 1
-		state = (up, down, left, right, green_apple_up, green_apple_down,
-		   			green_apple_left, green_apple_right, red_apple_up, red_apple_down,
-					red_apple_left, red_apple_right)
+		# UP (0, -1)
+		w_u, b_u, g_u, r_u = look(0, -1)
+		# DOWN (0, 1)
+		w_d, b_d, g_d, r_d = look(0, 1)
+		# LEFT (-1, 0)
+		w_l, b_l, g_l, r_l = look(-1, 0)
+		# RIGHT (1, 0)
+		w_r, b_r, g_r, r_r = look(1, 0)
+		
+		def is_unsafe(x, y):
+			if not (0 <= x < self.width and 0 <= y < self.height): return 1
+			if (x, y) in self.snake.body[:-1]: return 1
+			return 0
+		state = (
+			is_unsafe(head_x, head_y - 1), 
+			is_unsafe(head_x, head_y + 1),
+			is_unsafe(head_x - 1, head_y),
+			is_unsafe(head_x + 1, head_y),
+			g_u, g_d, g_l, g_r,
+			r_u, r_d, r_l, r_r,
+			# w_u, w_d, w_l , w_r, b_u, b_d, b_l, b_r #TEST
+		)
 		return state
 
 	def random_pos(self):
@@ -120,22 +117,34 @@ class Board:
 			self.red_pos.append(self.random_pos())
 
 	def place_apple(self, window):
-		red_apple = self.red_pos[0]
-		red_apple_x, red_apple_y = red_apple
-		centre_x = (red_apple_x * CELL_SIZE) + (CELL_SIZE // 2)
-		centre_y = (red_apple_y * CELL_SIZE) + (CELL_SIZE // 2)
-		pygame.draw.circle(window, RED, (centre_x, centre_y), CELL_SIZE // 3)
+		for apple in self.red_pos:
+			apple_x, apple_y = apple
+			center_x = (apple_x * CELL_SIZE) + (CELL_SIZE // 2)
+			center_y = (apple_y * CELL_SIZE) + (CELL_SIZE // 2)
+			pygame.draw.circle(window, BAD_APPLE, (center_x, center_y), CELL_SIZE // 2.5)
+			pygame.draw.circle(window, (255, 100, 180), (center_x, center_y), CELL_SIZE // 4)
+
 		for apple in self.green_pos:
-			green_apple_x, green_apple_y = apple
-			centre_x = (green_apple_x * CELL_SIZE) + (CELL_SIZE // 2)
-			centre_y = (green_apple_y * CELL_SIZE) + (CELL_SIZE // 2)
-			pygame.draw.circle(window, GREEN, (centre_x, centre_y), CELL_SIZE // 3)
+			apple_x, apple_y = apple
+			center_x = (apple_x * CELL_SIZE) + (CELL_SIZE // 2)
+			center_y = (apple_y * CELL_SIZE) + (CELL_SIZE // 2)
+			pygame.draw.circle(window, GOOD_APPLE, (center_x, center_y), CELL_SIZE // 2.5)
+			pygame.draw.circle(window, (200, 255, 200), (center_x, center_y), CELL_SIZE // 4)
 
 	def draw_snake(self, window):
-		for pos in self.snake.body:
+		for i, pos in enumerate(self.snake.body):
 			x, y = pos
 			rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-			pygame.draw.rect(window, BLUE, rect)
+			
+			inner_rect = rect.inflate(-4, -4)
+			
+			if i == len(self.snake.body) - 1: 
+				pygame.draw.rect(window, WHITE, inner_rect, border_radius=5)
+				pygame.draw.rect(window, SNAKE, inner_rect, 2, border_radius=5)
+			else: 
+				pygame.draw.rect(window, SNAKE, inner_rect, border_radius=2)
+				center_rect = inner_rect.inflate(-20, -20)
+				pygame.draw.rect(window, BACKGROUND, center_rect, border_radius=2)
 	
 	def init_board(self):
 		pygame.init()
@@ -153,17 +162,45 @@ class Board:
 			self.snake.direction = (1, 0)
 
 	def step(self, action):
+		head_x, head_y = self.snake.body[-1]
+		old_dist = float('inf')
+		if self.green_pos:
+			# Find closest green apple
+			for gx, gy in self.green_pos:
+				dist = abs(head_x - gx) + abs(head_y - gy) # Manhattan distance
+				if dist < old_dist:
+					old_dist = dist
+
 		self.update_direction(action)
 		result = self.snake.move(self.green_pos, self.red_pos)
+		
 		reward = 0
 		done = False
-		if result == 1 : reward = -3  # Small penalty to encourage finding food quickly
-		elif result == 2 : reward = 100  # Green apple (good)
-		elif result == 3 : reward = -20  # Red apple (bad)
+		
+		if result == 1 : 
+			reward = -0.5  # Living penalty
+			new_head_x, new_head_y = self.snake.body[-1]
+			new_dist = float('inf')
+			if self.green_pos:
+				for gx, gy in self.green_pos:
+					dist = abs(new_head_x - gx) + abs(new_head_y - gy)
+					if dist < new_dist:
+						new_dist = dist
+			
+			if new_dist < old_dist:
+				reward += 1.0 # Moving closer
+			else:
+				reward -= 1.0 # Moving away
+
+		elif result == 2 : reward = 100  # Green apple
+		elif result == 3 : reward = -20  # Red apple
 		elif result == 4 or result == 5 or result == 6:
 			reward = -100  # Death penalty
 			done = True
 
+		if done or len(self.snake.body) == 0:
+			return (1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0), reward, True
+		
 		next_state = self.get_agent_state()
 		return next_state, reward, done
 

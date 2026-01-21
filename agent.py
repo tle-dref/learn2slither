@@ -7,11 +7,13 @@ class Agent:
 		self.q_table = {}
 
 		self.actions = ["UP", "DOWN", "LEFT", "RIGHT"]
-		self.lr = 0.1 # (Alpha)
-		self.discount_factor = 0.9 # (Gamma) importance of future
-		self.explo_rate = 1.0 # (Epsilon) luck based move probability at start
-		self.explo_decay = 0.995 # factor by which we decay the luck based move
-		self.min_explo = 0.01 # keep a percent of luck based move
+		self.lr = 0.3  # Initial learning rate
+		self.min_lr = 0.1 # Minimum learning rate
+		self.lr_decay = 0.99995 # Decay per step
+		self.discount_factor = 0.98  # Increased to value future survival more
+		self.explo_rate = 1.0 
+		self.explo_decay = 0.9995 
+		self.min_explo = 0.0
 
 	def get_q_value(self, state, action):
 		return self.q_table.get((state, action), 0.0) # if situatation is unknown, ret 0
@@ -33,21 +35,27 @@ class Agent:
 					best_action = action
 			return best_action
 		
-	def learn(self, state, action, reward, next_state):
+	def learn(self, state, action, reward, next_state, done):
 		# Bellman Formula
 		current_q = self.get_q_value(state, action) #get current score
 
 		# Find the maximum Q-value for the next state
-		max_future_q = max(self.get_q_value(next_state, next_action) 
-						   for next_action in self.actions)
-		
-		# new Q = old Q + Alpha * (reward + Gamma * future - old Q)
-		new_q = current_q + self.lr * (reward + (self.discount_factor * max_future_q) - current_q)
+		if done:
+			target = reward
+		else:
+			max_future_q = max(self.get_q_value(next_state, next_action) 
+							for next_action in self.actions)
+			target = reward + (self.discount_factor * max_future_q)
+
+		# new Q = old Q + Alpha * (target - old Q)
+		new_q = current_q + self.lr * (target - current_q)
 		self.q_table[(state, action)] = new_q
 
 	def update_exploration(self):
 		if self.explo_rate > self.min_explo:
 				self.explo_rate *= self.explo_decay
+		if self.lr > self.min_lr:
+			self.lr *= self.lr_decay
 
 
 	def save_model(self, filepath):
