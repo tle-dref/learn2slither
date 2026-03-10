@@ -94,11 +94,19 @@ class Board:
 			if not (0 <= x < self.width and 0 <= y < self.height): return 1
 			if (x, y) in self.snake.body[:-1]: return 1
 			return 0
+		
+		# Direction actuelle du serpent
+		dir_up = 1 if self.snake.direction == (0, -1) else 0
+		dir_down = 1 if self.snake.direction == (0, 1) else 0
+		dir_left = 1 if self.snake.direction == (-1, 0) else 0
+		dir_right = 1 if self.snake.direction == (1, 0) else 0
+		
 		state = (
 			is_unsafe(head_x, head_y - 1), 
 			is_unsafe(head_x, head_y + 1),
 			is_unsafe(head_x - 1, head_y),
 			is_unsafe(head_x + 1, head_y),
+			dir_up, dir_down, dir_left, dir_right,
 			g_u, g_d, g_l, g_r,
 			r_u, r_d, r_l, r_r,
 			# w_u, w_d, w_l , w_r, b_u, b_d, b_l, b_r #TEST
@@ -162,15 +170,6 @@ class Board:
 			self.snake.direction = (1, 0)
 
 	def step(self, action):
-		head_x, head_y = self.snake.body[-1]
-		old_dist = float('inf')
-		if self.green_pos:
-			# Find closest green apple
-			for gx, gy in self.green_pos:
-				dist = abs(head_x - gx) + abs(head_y - gy) # Manhattan distance
-				if dist < old_dist:
-					old_dist = dist
-
 		self.update_direction(action)
 		result = self.snake.move(self.green_pos, self.red_pos)
 		
@@ -178,20 +177,7 @@ class Board:
 		done = False
 		
 		if result == 1 : 
-			reward = -0.5  # Living penalty
-			new_head_x, new_head_y = self.snake.body[-1]
-			new_dist = float('inf')
-			if self.green_pos:
-				for gx, gy in self.green_pos:
-					dist = abs(new_head_x - gx) + abs(new_head_y - gy)
-					if dist < new_dist:
-						new_dist = dist
-			
-			if new_dist < old_dist:
-				reward += 1.0 # Moving closer
-			else:
-				reward -= 1.0 # Moving away
-
+			reward = 0  # No penalty for living
 		elif result == 2 : reward = 100  # Green apple
 		elif result == 3 : reward = -20  # Red apple
 		elif result == 4 or result == 5 or result == 6:
@@ -199,7 +185,7 @@ class Board:
 			done = True
 
 		if done or len(self.snake.body) == 0:
-			return (1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0), reward, True
+			return (1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), reward, True
 		
 		next_state = self.get_agent_state()
 		return next_state, reward, done

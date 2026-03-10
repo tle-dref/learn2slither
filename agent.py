@@ -7,13 +7,13 @@ class Agent:
 		self.q_table = {}
 
 		self.actions = ["UP", "DOWN", "LEFT", "RIGHT"]
-		self.lr = 0.3  # Initial learning rate
-		self.min_lr = 0.1 # Minimum learning rate
-		self.lr_decay = 0.99995 # Decay per step
-		self.discount_factor = 0.98  # Increased to value future survival more
+		self.lr = 0.2  # Initial learning rate
+		self.min_lr = 0.05 # Minimum learning rate
+		self.lr_decay = 0.9998 # Decay per session - slower
+		self.discount_factor = 0.9  # Discount factor for future rewards
 		self.explo_rate = 1.0 
-		self.explo_decay = 0.9995 
-		self.min_explo = 0.0
+		self.explo_decay = 0.9995  # Decay per session - slower
+		self.min_explo = 0.05  # Keep more exploration
 
 	def get_q_value(self, state, action):
 		return self.q_table.get((state, action), 0.0) # if situatation is unknown, ret 0
